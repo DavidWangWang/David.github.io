@@ -294,7 +294,7 @@
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="John Doe">
       <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="image" content="/image/logo.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
@@ -360,7 +360,34 @@
       
         
           
-            
+            <ul>
+<li><p>Lua_gettop(lua_State *)  获取栈顶元素的索引，即获取栈内元素的个数</p>
+</li>
+<li><p>lua_type(lua_State *,int) 获取栈中指定索引的类型</p>
+</li>
+<li><p>lua_pushstring(lua_State *,”name”) 向栈内压入一个name字符串</p>
+</li>
+<li><p>lua_isstring(lua_State <em>,index) 判断栈内指定索引的元素是否是string类型。同理lua_isnumber(lua_State </em>,index)判断栈内指定索引的元素是否是number类型</p>
+</li>
+<li><p>同理对应着2个转换方法lua_tostring(lua_State <em>,index) 返回const char </em>类型。lua_tonumber(lua_State *,index)返回指定索引为int。</p>
+<p>to的方式不会出栈。</p>
+</li>
+<li><p>lua_settop(lua_State * ,index) index值可以相对栈顶和栈尾做参考。栈顶的话为负值，比如lua_settop(L,-2)则清除栈顶元素,比如栈内有5个元素，lua_settop(L,4)也代表去除栈顶元素。</p>
+</li>
+<li><p>其他的一些栈操作</p>
+<ul>
+<li>lua_pushValue（lua_State * ,index）将指定索引上的值的副本入栈</li>
+<li>lua_remove(lua_State * ,index) 移除index索引上的值</li>
+<li>lua_insert(lua_State * ,index)弹出栈顶元素，并插入到指定位置</li>
+<li>Lua_replace(lua_State * ,index)弹出栈顶元素，并替换指定位置的值</li>
+</ul>
+</li>
+<li><p>lua_pop(lua_State * ,number)  出栈的个数</p>
+</li>
+<li><p>lua_getField(L,index,key) 相当于lua_pushstring(L,”name”) + lua_gettable(L,-2) 相当于name先入栈，然后从索引为-2的位置取table，在table查key,将查找结果入栈。 lua_getfield(l,inde,key) 同理在指定位置取表，然后通过key在表中查询，将查询结果入栈，为nil也入栈。</p>
+</li>
+</ul>
+
           
         
       
@@ -413,7 +440,7 @@
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="John Doe">
       <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="image" content="/image/logo.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
@@ -558,6 +585,10 @@
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
+              <img class="site-author-image" itemprop="image"
+                src="/image/logo.jpg"
+                alt="John Doe" />
+            
               <p class="site-author-name" itemprop="name">John Doe</p>
               <p class="site-description motion-element" itemprop="description"></p>
           </div>
@@ -577,6 +608,15 @@
 
             
 
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
             
 
           </nav>

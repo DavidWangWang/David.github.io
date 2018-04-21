@@ -87,7 +87,7 @@
 <meta property="og:site_name" content="Hexo">
 <meta property="og:description" content="Lua_gettop(lua_State *)  获取栈顶元素的索引，即获取栈内元素的个数  lua_type(lua_State *,int) 获取栈中指定索引的类型  lua_pushstring(lua_State *,”name”) 向栈内压入一个name字符串  lua_isstring(lua_State ,index) 判断栈内指定索引的元素是否是string类型。同理lua_is">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2018-04-20T02:29:53.000Z">
+<meta property="og:updated_time" content="2018-04-20T09:00:59.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="你好,王宁">
 <meta name="twitter:description" content="Lua_gettop(lua_State *)  获取栈顶元素的索引，即获取栈内元素的个数  lua_type(lua_State *,int) 获取栈中指定索引的类型  lua_pushstring(lua_State *,”name”) 向栈内压入一个name字符串  lua_isstring(lua_State ,index) 判断栈内指定索引的元素是否是string类型。同理lua_is">
@@ -385,6 +385,8 @@
 <li><p>lua_pop(lua_State * ,number)  出栈的个数</p>
 </li>
 <li><p>lua_getField(L,index,key) 相当于lua_pushstring(L,”name”) + lua_gettable(L,-2) 相当于name先入栈，然后从索引为-2的位置取table，在table查key,将查找结果入栈。 lua_getfield(l,inde,key) 同理在指定位置取表，然后通过key在表中查询，将查询结果入栈，为nil也入栈。</p>
+</li>
+<li><p>lua_pcall(L, 0, 0, 0); 栈内对象去执行栈顶的func</p>
 </li>
 </ul>
 

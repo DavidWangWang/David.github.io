@@ -386,6 +386,8 @@
 </li>
 <li><p>lua_getField(L,index,key) 相当于lua_pushstring(L,”name”) + lua_gettable(L,-2) 相当于name先入栈，然后从索引为-2的位置取table，在table查key,将查找结果入栈。 lua_getfield(l,inde,key) 同理在指定位置取表，然后通过key在表中查询，将查询结果入栈，为nil也入栈。</p>
 </li>
+<li><p>lua_pcall(L, 0, 0, 0); 栈内对象去执行栈顶的func</p>
+</li>
 </ul>
 
           

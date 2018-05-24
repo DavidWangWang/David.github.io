@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.ico?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="LuaView  第一版SDK的理解 LVBaseView  通过把原生类实例构建成userdata的方式映射到Lua 中。userdata-&amp;gt;object指向类的内存。通过为userdata设置原表的方式关联类实例的function。  每个类的baseMemberFunctions返回一个结构体指针，即结构体数组，返回当前userdata元表中的所有func。 ​          下面">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LuaSDK理解">
+<meta property="og:url" content="http://davidwang.club/2018/05/24/LuaSDK理解/index.html">
+<meta property="og:site_name" content="David&#39;s blogs">
+<meta property="og:description" content="LuaView  第一版SDK的理解 LVBaseView  通过把原生类实例构建成userdata的方式映射到Lua 中。userdata-&amp;gt;object指向类的内存。通过为userdata设置原表的方式关联类实例的function。  每个类的baseMemberFunctions返回一个结构体指针，即结构体数组，返回当前userdata元表中的所有func。 ​          下面">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-05-24T14:06:24.150Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="LuaSDK理解">
+<meta name="twitter:description" content="LuaView  第一版SDK的理解 LVBaseView  通过把原生类实例构建成userdata的方式映射到Lua 中。userdata-&amp;gt;object指向类的内存。通过为userdata设置原表的方式关联类实例的function。  每个类的baseMemberFunctions返回一个结构体指针，即结构体数组，返回当前userdata元表中的所有func。 ​          下面">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"right","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://davidwang.club/2018/05/24/LuaSDK理解/"/>
+
+
+
+
+
+  <title>LuaSDK理解 | David's blogs</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-right page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">David's blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-search">
+          <a href="/search" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-something">
+          <a href="/something" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            something
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/24/LuaSDK理解/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="David">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/image/logo.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="David's blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">LuaSDK理解</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-24T22:06:07+08:00">
+                2018-05-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="LuaView-第一版SDK的理解"><a href="#LuaView-第一版SDK的理解" class="headerlink" title="LuaView  第一版SDK的理解"></a>LuaView  第一版SDK的理解</h3><ul>
+<li><p>LVBaseView</p>
+<ul>
+<li><p>通过把原生类实例构建成userdata的方式映射到Lua 中。userdata-&gt;object指向类的内存。通过为userdata设置原表的方式关联类实例的function。</p>
+</li>
+<li><p>每个类的baseMemberFunctions返回一个结构体指针，即结构体数组，返回当前userdata元表中的所有func。</p>
+<p>​        </p>
+</li>
+<li><p>下面对具体的代码做解析</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">static int hidden(lua_State *L) &#123;</span><br><span class="line"></span><br><span class="line">  // Lua虚拟栈的栈底始终返回传入的对象本身的指针。lua_touserdata(L,index)第一个参数为L虚拟机，第二个参数为栈相应的位置。返回对象的内存地址。</span><br><span class="line"></span><br><span class="line">  LVUserDataInfo * user = (LVUserDataInfo *)lua_touserdata(L, 1);</span><br><span class="line"></span><br><span class="line">  if( user )&#123;</span><br><span class="line">   // 从封装的userdata的object指针取出相应的原生类实例</span><br><span class="line">  UIView* view = (__bridge UIView *)(user-&gt;object);</span><br><span class="line">  if( view )&#123;</span><br><span class="line">      // 如果栈内元素大于2,即调用的为set方法。</span><br><span class="line">      // lua_gettop返回栈顶元素的索引，即返回栈内元素的个数。</span><br><span class="line">      if ( lua_gettop(L)&gt;=2 ) &#123;</span><br><span class="line">          // 指定位置元素转换为bool值。</span><br><span class="line">          BOOL yes = lua_toboolean(L, 2);</span><br><span class="line">          view.hidden = yes;</span><br><span class="line">          //设置返回值的个数。Lua虚拟机会根据返回个数。将栈内指定个数的元素出栈</span><br><span class="line">          return 0;</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">          // 向栈内推入Bool值到栈顶</span><br><span class="line">          lua_pushboolean(L, view.hidden );</span><br><span class="line">          return 1;</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br><span class="line">    &#125;</span><br><span class="line">return 0;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>​</p>
+</li>
+</ul>
+<p>​      通过上面的例子可以感受到Lua通过栈把Lua的元素传递过来，然后对Lua类型的变量做解析。真实的逻辑处理依赖需要元素去处理。</p>
+<p>​    原生类型转为Lua类型传入。lv_pushNativeObject方法把这一过程进行封装。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line">void lv_pushNativeObject(lua_State* L, id value)&#123;</span><br><span class="line">   // 检查栈空间大小 </span><br><span class="line">    lua_checkstack(L, 4);</span><br><span class="line">    if( [value isKindOfClass:[NSString class]] ) &#123;</span><br><span class="line">        NSString* s = value;</span><br><span class="line">        // 将const char * 压栈</span><br><span class="line">        lua_pushstring(L, s.UTF8String);</span><br><span class="line">        return;</span><br><span class="line">    &#125; else if( [value isKindOfClass:[NSDictionary class]] ) &#123;</span><br><span class="line">        NSDictionary* dictionary = value;</span><br><span class="line">        // 创建一个table并压栈</span><br><span class="line">        lua_newtable(L);</span><br><span class="line">        for (NSString *key in dictionary) &#123;</span><br><span class="line">            NSString* value = dictionary[key];</span><br><span class="line">            lua_checkstack(L, 4);</span><br><span class="line">            // 将key 压栈。</span><br><span class="line">            lua_pushstring(L, key.UTF8String);</span><br><span class="line">            // value对象是id类型。需要递归去处理</span><br><span class="line">            lv_pushNativeObject(L,value);</span><br><span class="line">            // 此时栈内元素为 [str,id,table]</span><br><span class="line">            // lua_settable(L,-3)为设置对应table的key为-2的value为栈顶元素。设置后key，value出栈。</span><br><span class="line">            lua_settable(L, -3);</span><br><span class="line">            // 此时栈内元素 [table]     table =  &#123;str=id&#125;</span><br><span class="line">        &#125;</span><br><span class="line">        return;</span><br><span class="line">    &#125; else if( [value isKindOfClass:[NSArray class]] ) &#123;</span><br><span class="line">        NSArray* array = value;</span><br><span class="line">        lua_newtable(L);</span><br><span class="line">        for (int i=0; i&lt;array.count; i++) &#123;</span><br><span class="line">            id value = array[i];</span><br><span class="line">            // 推入number到栈中</span><br><span class="line">            lua_pushnumber(L, i+1);</span><br><span class="line">            // 同理递归转换为lua可识别对象</span><br><span class="line">            lv_pushNativeObject(L,value);</span><br><span class="line">            // 同上。[id,number,table]</span><br><span class="line">            lua_settable(L, -3);</span><br><span class="line">            // [table]         table =  &#123;1= id&#125;</span><br><span class="line">         &#125;</span><br><span class="line">        return;</span><br><span class="line">    &#125; else if( [value isKindOfClass:[NSNumber class]] ) &#123;		// 同理lua_pushnumber(L,num),lua_pushboolean将对应元素位置压栈</span><br><span class="line">        static Class boolClass = nil;;</span><br><span class="line">        if ( boolClass ==nil ) &#123;</span><br><span class="line">            boolClass = [@(YES) class];</span><br><span class="line">        &#125;</span><br><span class="line">        NSNumber* number = value;</span><br><span class="line">        if( [value class] == boolClass) &#123;</span><br><span class="line">            //  是否是bool类型</span><br><span class="line">            lua_pushboolean(L, number.boolValue);</span><br><span class="line">            return;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            lua_pushnumber(L, number.doubleValue);</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;  else if( value==nil || value == [NSNull null] ) &#123;</span><br><span class="line">        </span><br><span class="line">        // lua_pushnil(L) 将nil元素压栈</span><br><span class="line">        lua_pushnil(L);</span><br><span class="line">        return;</span><br><span class="line">    &#125; else if( [value isKindOfClass:[LVBlock class] ] ) &#123;</span><br><span class="line">        // 1、将LVBlock中的retainKey 作为lightuserdata的方式压栈; 2.从注册表获取retainKey对应的func，然后将对应的Func压栈。</span><br><span class="line">        LVBlock* block = (LVBlock*)value;</span><br><span class="line">        [block pushFunctionToStack];</span><br><span class="line">        return;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        // 将OC对象通过box包装一下压栈，压到栈内的为userdata,稍后讲解这个Api</span><br><span class="line">        lv_pushNativeObjectWithBox(L, value);</span><br><span class="line">        return;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">void lv_pushNativeObjectWithBox(lua_State * L, id nativeObject )&#123;</span><br><span class="line">// 实例化一个Box对象通过nativeObject</span><br><span class="line">LVNativeObjBox* nativeObjBox = [[LVNativeObjBox alloc] init:L nativeObject:nativeObject];</span><br><span class="line">nativeObjBox.openAllMethod = YES;// 所有api都开放</span><br><span class="line">// 创建一个userdata对象关联nativeObject 并压栈</span><br><span class="line">NEW_USERDATA(userData, NativeObject);</span><br><span class="line">// ARC不处理当前对象了，把引用权利交给Lua GC</span><br><span class="line">userData-&gt;object = CFBridgingRetain(nativeObjBox);</span><br><span class="line">// 关联native的userData为当前的userdata。</span><br><span class="line">nativeObjBox.lv_userData = userData;</span><br><span class="line">// 获取元表并压栈</span><br><span class="line">luaL_getmetatable(L, META_TABLE_NativeObject);</span><br><span class="line">// 设置对应位置的userData的元表为栈顶的表。</span><br><span class="line">lua_setmetatable(L, -2);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>LVBaseView中有一个注册方法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">+(int) lvClassDefine:(lua_State *)L globalName:(NSString*) globalName&#123;</span><br><span class="line">    // 通过cls和lvNewView这个Func合并成一个closure 然后关联到全局表的Name中 具体参考下面的Api</span><br><span class="line">    [LVUtil reg:L clas:self cfunc:lvNewView globalName:globalName defaultName:@&quot;View&quot;];</span><br><span class="line">    // 创建metable 并压栈</span><br><span class="line">    lv_createClassMetaTable(L, META_TABLE_UIView);</span><br><span class="line">    // 将结构体数组。循环以结构体的name为key。结构体的func为key写入metableTable</span><br><span class="line">    luaL_openlib(L, NULL, [LVBaseView baseMemberFunctions], 0);</span><br><span class="line">    // 同理如上。创建META_TABLE_LuaView原表</span><br><span class="line">    lv_createClassMetaTable(L, META_TABLE_LuaView);</span><br><span class="line">    // 将LVBaseView所有内容写入元表</span><br><span class="line">    luaL_openlib(L, NULL, [LVBaseView baseMemberFunctions], 0);</span><br><span class="line">    // luaViewMemberFunctions结构体数组内容写入元表</span><br><span class="line">    luaL_openlib(L, NULL, luaViewMemberFunctions, 0);</span><br><span class="line">    return 1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>LVUtil  reg方法如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">+(void) reg:(lua_State*)L clas:(id) c cfunc:(lua_CFunction) cfunc globalName:(NSString*)globalName defaultName:(NSString*) defaultName&#123;</span><br><span class="line">    if( defaultName || globalName ) &#123;</span><br><span class="line">        // 检查栈空间大小</span><br><span class="line">        lua_checkstack(L, 12);</span><br><span class="line">        // 通过类获取类名</span><br><span class="line">        NSString* className = NSStringFromClass(c);</span><br><span class="line">        // str 压栈</span><br><span class="line">        lua_pushstring(L, className.UTF8String);</span><br><span class="line">        // 传入1则会根据-1位置的元素及func生成闭包名</span><br><span class="line">        lua_pushcclosure(L, cfunc, 1);</span><br><span class="line">        // 设置global或者default到Lua虚拟机的全局表。当在Lua中调用Collection的时候会根据key找到传入的cFunc地址。然后()会调用这个Func生成native 对象。</span><br><span class="line">        // lua_setglobal(L,name) 会将栈顶元素出栈，并设置到全局表对应的Key。</span><br><span class="line">        lua_setglobal(L, globalName ? globalName.UTF8String : defaultName.UTF8String );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>luaL_openlib()方法的定义如下</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">LUALIB_API <span class="keyword">void</span> <span class="title">luaI_openlib</span> <span class="params">(lua_State *L, <span class="keyword">const</span> <span class="keyword">char</span> *libname,</span></span></span><br><span class="line"><span class="function"><span class="params">                              <span class="keyword">const</span> luaL_Reg *l, <span class="keyword">int</span> nup)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (libname) &#123;</span><br><span class="line">    <span class="keyword">int</span> size = libsize(l);</span><br><span class="line">    <span class="comment">/* check whether lib already exists */</span></span><br><span class="line">    luaL_findtable(L, LUA_REGISTRYINDEX, <span class="string">"_LOADED"</span>, <span class="number">1</span>);</span><br><span class="line">    lua_getfield(L, <span class="number">-1</span>, libname);  <span class="comment">/* get _LOADED[libname] */</span></span><br><span class="line">    <span class="keyword">if</span> (!lua_istable(L, <span class="number">-1</span>)) &#123;  <span class="comment">/* not found? */</span></span><br><span class="line">      lua_pop(L, <span class="number">1</span>);  <span class="comment">/* remove previous result */</span></span><br><span class="line">      <span class="comment">/* try global variable (and create one if it does not exist) */</span></span><br><span class="line">      <span class="keyword">if</span> (luaL_findtable(L, LUA_GLOBALSINDEX, libname, size) != <span class="literal">NULL</span>)</span><br><span class="line">        luaL_error(L, <span class="string">"name conflict for module "</span> LUA_QS, libname);</span><br><span class="line">      lua_pushvalue(L, <span class="number">-1</span>);</span><br><span class="line">      lua_setfield(L, <span class="number">-3</span>, libname);  <span class="comment">/* _LOADED[libname] = new table */</span></span><br><span class="line">    &#125;</span><br><span class="line">    lua_remove(L, <span class="number">-2</span>);  <span class="comment">/* remove _LOADED table */</span></span><br><span class="line">    lua_insert(L, -(nup+<span class="number">1</span>));  <span class="comment">/* move library table to below upvalues */</span></span><br><span class="line">  &#125;</span><br><span class="line">    <span class="comment">// 一般libName传入null</span></span><br><span class="line">  <span class="keyword">for</span> (; l-&gt;name; l++) &#123;</span><br><span class="line">    <span class="keyword">int</span> i;</span><br><span class="line">    <span class="keyword">for</span> (i=<span class="number">0</span>; i&lt;nup; i++)  <span class="comment">/* copy upvalues to the top */</span></span><br><span class="line">      lua_pushvalue(L, -nup);</span><br><span class="line">      <span class="comment">// 向栈内压入closure</span></span><br><span class="line">    lua_pushcclosure(L, l-&gt;func, nup);</span><br><span class="line">      <span class="comment">// 设置-2位置的table。此时为元表。设置name为key,栈顶元素为value，然后栈顶元素出栈。</span></span><br><span class="line">    lua_setfield(L, -(nup+<span class="number">2</span>), l-&gt;name);</span><br><span class="line">  &#125;</span><br><span class="line">  lua_pop(L, nup);  <span class="comment">/* remove upvalues */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其他的LuaSDK中的View和LVBaseView类似，可以类推。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/22/代码优雅设计/" rel="next" title="代码优雅设计">
+                <i class="fa fa-chevron-left"></i> 代码优雅设计
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/image/logo.jpg"
+                alt="David" />
+            
+              <p class="site-author-name" itemprop="name">David</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">9</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/yourname" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:yourname@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://plus.google.com/yourname" target="_blank" title="Google">
+                      
+                        <i class="fa fa-fw fa-google"></i>Google</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://twitter.com/yourname" target="_blank" title="Twitter">
+                      
+                        <i class="fa fa-fw fa-twitter"></i>Twitter</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://www.facebook.com/yourname" target="_blank" title="FB Page">
+                      
+                        <i class="fa fa-fw fa-facebook"></i>FB Page</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://vk.com/yourname" target="_blank" title="VK Group">
+                      
+                        <i class="fa fa-fw fa-vk"></i>VK Group</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://stackoverflow.com/yourname" target="_blank" title="StackOverflow">
+                      
+                        <i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://youtube.com/yourname" target="_blank" title="YouTube">
+                      
+                        <i class="fa fa-fw fa-youtube"></i>YouTube</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://instagram.com/yourname" target="_blank" title="Instagram">
+                      
+                        <i class="fa fa-fw fa-instagram"></i>Instagram</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="skype:yourname?call|chat" target="_blank" title="Skype">
+                      
+                        <i class="fa fa-fw fa-skype"></i>Skype</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#LuaView-第一版SDK的理解"><span class="nav-number">1.</span> <span class="nav-text">LuaView  第一版SDK的理解</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">David</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<div style="margin:-20px;position: absolute;right:265px;">
+<dl style="float:left">
+  <dt style="float:left">
+    <dd style="float:left;width:300px">
+      <span style="float:right">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|</span>
+      <span style="float:right">本站总访问量<span><span style="float:right" id="busuanzi_value_site_pv"></span>
+    </dd>
+  </dt>
+  <dt style="float:left;width:300px">
+    <dd>
+      <span style="float:left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      <span style="float:left">您是第</span>
+      <span style="float:left" id="busuanzi_value_site_uv"></span>
+      <span style="float:left">个小伙伴</span>
+      <span>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;</span>
+      <span id="showDays"></span>
+    </dd>
+  </dt>
+</dl>
+</div>
+
+<script>
+  var birthDay = new Date('04/21/2018');
+  var now = new Date();
+  var duration = now.getTime() - birthDay.getTime();
+  var total= Math.floor(duration / (1000 * 60 * 60 * 24));
+  document.getElementById('showDays').innerHTML='本站已运行' + total + '天';
+</script>
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

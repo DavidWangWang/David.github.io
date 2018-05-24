@@ -289,6 +289,151 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/24/LuaSDK理解/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="David">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/image/logo.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="David's blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/24/LuaSDK理解/" itemprop="url">LuaSDK理解</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-24T22:06:07+08:00">
+                2018-05-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h3 id="LuaView-第一版SDK的理解"><a href="#LuaView-第一版SDK的理解" class="headerlink" title="LuaView  第一版SDK的理解"></a>LuaView  第一版SDK的理解</h3><ul>
+<li><p>LVBaseView</p>
+<ul>
+<li><p>通过把原生类实例构建成userdata的方式映射到Lua 中。userdata-&gt;object指向类的内存。通过为userdata设置原表的方式关联类实例的function。</p>
+</li>
+<li><p>每个类的baseMemberFunctions返回一个结构体指针，即结构体数组，返回当前userdata元表中的所有func。</p>
+<p>​        </p>
+</li>
+<li><p>下面对具体的代码做解析</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">static int hidden(lua_State *L) &#123;</span><br><span class="line"></span><br><span class="line">  // Lua虚拟栈的栈底始终返回传入的对象本身的指针。lua_touserdata(L,index)第一个参数为L虚拟机，第二个参数为栈相应的位置。返回对象的内存地址。</span><br><span class="line"></span><br><span class="line">  LVUserDataInfo * user = (LVUserDataInfo *)lua_touserdata(L, 1);</span><br><span class="line"></span><br><span class="line">  if( user )&#123;</span><br><span class="line">   // 从封装的userdata的object指针取出相应的原生类实例</span><br><span class="line">  UIView* view = (__bridge UIView *)(user-&gt;object);</span><br><span class="line">  if( view )&#123;</span><br><span class="line">      // 如果栈内元素大于2,即调用的为set方法。</span><br><span class="line">      // lua_gettop返回栈顶元素的索引，即返回栈内元素的个数。</span><br><span class="line">      if ( lua_gettop(L)&gt;=2 ) &#123;</span><br><span class="line">          // 指定位置元素转换为bool值。</span><br><span class="line">          BOOL yes = lua_toboolean(L, 2);</span><br><span class="line">          view.hidden = yes;</span><br><span class="line">          //设置返回值的个数。Lua虚拟机会根据返回个数。将栈内指定个数的元素出栈</span><br><span class="line">          return 0;</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">          // 向栈内推入Bool值到栈顶</span><br><span class="line">          lua_pushboolean(L, view.hidden );</span><br><span class="line">          return 1;</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;</span><br><span class="line">    &#125;</span><br><span class="line">return 0;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>​</p>
+</li>
+</ul>
+<p>​      通过上面的例子可以感受到Lua通过栈把Lua的元素传递过来，然后对Lua类型的变量做解析。真实的逻辑处理依赖需要元素去处理。</p>
+<p>​    原生类型转为Lua类型传入。lv_pushNativeObject方法把这一过程进行封装。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line">void lv_pushNativeObject(lua_State* L, id value)&#123;</span><br><span class="line">   // 检查栈空间大小 </span><br><span class="line">    lua_checkstack(L, 4);</span><br><span class="line">    if( [value isKindOfClass:[NSString class]] ) &#123;</span><br><span class="line">        NSString* s = value;</span><br><span class="line">        // 将const char * 压栈</span><br><span class="line">        lua_pushstring(L, s.UTF8String);</span><br><span class="line">        return;</span><br><span class="line">    &#125; else if( [value isKindOfClass:[NSDictionary class]] ) &#123;</span><br><span class="line">        NSDictionary* dictionary = value;</span><br><span class="line">        // 创建一个table并压栈</span><br><span class="line">        lua_newtable(L);</span><br><span class="line">        for (NSString *key in dictionary) &#123;</span><br><span class="line">            NSString* value = dictionary[key];</span><br><span class="line">            lua_checkstack(L, 4);</span><br><span class="line">            // 将key 压栈。</span><br><span class="line">            lua_pushstring(L, key.UTF8String);</span><br><span class="line">            // value对象是id类型。需要递归去处理</span><br><span class="line">            lv_pushNativeObject(L,value);</span><br><span class="line">            // 此时栈内元素为 [str,id,table]</span><br><span class="line">            // lua_settable(L,-3)为设置对应table的key为-2的value为栈顶元素。设置后key，value出栈。</span><br><span class="line">            lua_settable(L, -3);</span><br><span class="line">            // 此时栈内元素 [table]     table =  &#123;str=id&#125;</span><br><span class="line">        &#125;</span><br><span class="line">        return;</span><br><span class="line">    &#125; else if( [value isKindOfClass:[NSArray class]] ) &#123;</span><br><span class="line">        NSArray* array = value;</span><br><span class="line">        lua_newtable(L);</span><br><span class="line">        for (int i=0; i&lt;array.count; i++) &#123;</span><br><span class="line">            id value = array[i];</span><br><span class="line">            // 推入number到栈中</span><br><span class="line">            lua_pushnumber(L, i+1);</span><br><span class="line">            // 同理递归转换为lua可识别对象</span><br><span class="line">            lv_pushNativeObject(L,value);</span><br><span class="line">            // 同上。[id,number,table]</span><br><span class="line">            lua_settable(L, -3);</span><br><span class="line">            // [table]         table =  &#123;1= id&#125;</span><br><span class="line">         &#125;</span><br><span class="line">        return;</span><br><span class="line">    &#125; else if( [value isKindOfClass:[NSNumber class]] ) &#123;		// 同理lua_pushnumber(L,num),lua_pushboolean将对应元素位置压栈</span><br><span class="line">        static Class boolClass = nil;;</span><br><span class="line">        if ( boolClass ==nil ) &#123;</span><br><span class="line">            boolClass = [@(YES) class];</span><br><span class="line">        &#125;</span><br><span class="line">        NSNumber* number = value;</span><br><span class="line">        if( [value class] == boolClass) &#123;</span><br><span class="line">            //  是否是bool类型</span><br><span class="line">            lua_pushboolean(L, number.boolValue);</span><br><span class="line">            return;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            lua_pushnumber(L, number.doubleValue);</span><br><span class="line">            return;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;  else if( value==nil || value == [NSNull null] ) &#123;</span><br><span class="line">        </span><br><span class="line">        // lua_pushnil(L) 将nil元素压栈</span><br><span class="line">        lua_pushnil(L);</span><br><span class="line">        return;</span><br><span class="line">    &#125; else if( [value isKindOfClass:[LVBlock class] ] ) &#123;</span><br><span class="line">        // 1、将LVBlock中的retainKey 作为lightuserdata的方式压栈; 2.从注册表获取retainKey对应的func，然后将对应的Func压栈。</span><br><span class="line">        LVBlock* block = (LVBlock*)value;</span><br><span class="line">        [block pushFunctionToStack];</span><br><span class="line">        return;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        // 将OC对象通过box包装一下压栈，压到栈内的为userdata,稍后讲解这个Api</span><br><span class="line">        lv_pushNativeObjectWithBox(L, value);</span><br><span class="line">        return;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">void lv_pushNativeObjectWithBox(lua_State * L, id nativeObject )&#123;</span><br><span class="line">// 实例化一个Box对象通过nativeObject</span><br><span class="line">LVNativeObjBox* nativeObjBox = [[LVNativeObjBox alloc] init:L nativeObject:nativeObject];</span><br><span class="line">nativeObjBox.openAllMethod = YES;// 所有api都开放</span><br><span class="line">// 创建一个userdata对象关联nativeObject 并压栈</span><br><span class="line">NEW_USERDATA(userData, NativeObject);</span><br><span class="line">// ARC不处理当前对象了，把引用权利交给Lua GC</span><br><span class="line">userData-&gt;object = CFBridgingRetain(nativeObjBox);</span><br><span class="line">// 关联native的userData为当前的userdata。</span><br><span class="line">nativeObjBox.lv_userData = userData;</span><br><span class="line">// 获取元表并压栈</span><br><span class="line">luaL_getmetatable(L, META_TABLE_NativeObject);</span><br><span class="line">// 设置对应位置的userData的元表为栈顶的表。</span><br><span class="line">lua_setmetatable(L, -2);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>LVBaseView中有一个注册方法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">+(int) lvClassDefine:(lua_State *)L globalName:(NSString*) globalName&#123;</span><br><span class="line">    // 通过cls和lvNewView这个Func合并成一个closure 然后关联到全局表的Name中 具体参考下面的Api</span><br><span class="line">    [LVUtil reg:L clas:self cfunc:lvNewView globalName:globalName defaultName:@&quot;View&quot;];</span><br><span class="line">    // 创建metable 并压栈</span><br><span class="line">    lv_createClassMetaTable(L, META_TABLE_UIView);</span><br><span class="line">    // 将结构体数组。循环以结构体的name为key。结构体的func为key写入metableTable</span><br><span class="line">    luaL_openlib(L, NULL, [LVBaseView baseMemberFunctions], 0);</span><br><span class="line">    // 同理如上。创建META_TABLE_LuaView原表</span><br><span class="line">    lv_createClassMetaTable(L, META_TABLE_LuaView);</span><br><span class="line">    // 将LVBaseView所有内容写入元表</span><br><span class="line">    luaL_openlib(L, NULL, [LVBaseView baseMemberFunctions], 0);</span><br><span class="line">    // luaViewMemberFunctions结构体数组内容写入元表</span><br><span class="line">    luaL_openlib(L, NULL, luaViewMemberFunctions, 0);</span><br><span class="line">    return 1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>LVUtil  reg方法如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">+(void) reg:(lua_State*)L clas:(id) c cfunc:(lua_CFunction) cfunc globalName:(NSString*)globalName defaultName:(NSString*) defaultName&#123;</span><br><span class="line">    if( defaultName || globalName ) &#123;</span><br><span class="line">        // 检查栈空间大小</span><br><span class="line">        lua_checkstack(L, 12);</span><br><span class="line">        // 通过类获取类名</span><br><span class="line">        NSString* className = NSStringFromClass(c);</span><br><span class="line">        // str 压栈</span><br><span class="line">        lua_pushstring(L, className.UTF8String);</span><br><span class="line">        // 传入1则会根据-1位置的元素及func生成闭包名</span><br><span class="line">        lua_pushcclosure(L, cfunc, 1);</span><br><span class="line">        // 设置global或者default到Lua虚拟机的全局表。当在Lua中调用Collection的时候会根据key找到传入的cFunc地址。然后()会调用这个Func生成native 对象。</span><br><span class="line">        // lua_setglobal(L,name) 会将栈顶元素出栈，并设置到全局表对应的Key。</span><br><span class="line">        lua_setglobal(L, globalName ? globalName.UTF8String : defaultName.UTF8String );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>luaL_openlib()方法的定义如下</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">LUALIB_API <span class="keyword">void</span> <span class="title">luaI_openlib</span> <span class="params">(lua_State *L, <span class="keyword">const</span> <span class="keyword">char</span> *libname,</span></span></span><br><span class="line"><span class="function"><span class="params">                              <span class="keyword">const</span> luaL_Reg *l, <span class="keyword">int</span> nup)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (libname) &#123;</span><br><span class="line">    <span class="keyword">int</span> size = libsize(l);</span><br><span class="line">    <span class="comment">/* check whether lib already exists */</span></span><br><span class="line">    luaL_findtable(L, LUA_REGISTRYINDEX, <span class="string">"_LOADED"</span>, <span class="number">1</span>);</span><br><span class="line">    lua_getfield(L, <span class="number">-1</span>, libname);  <span class="comment">/* get _LOADED[libname] */</span></span><br><span class="line">    <span class="keyword">if</span> (!lua_istable(L, <span class="number">-1</span>)) &#123;  <span class="comment">/* not found? */</span></span><br><span class="line">      lua_pop(L, <span class="number">1</span>);  <span class="comment">/* remove previous result */</span></span><br><span class="line">      <span class="comment">/* try global variable (and create one if it does not exist) */</span></span><br><span class="line">      <span class="keyword">if</span> (luaL_findtable(L, LUA_GLOBALSINDEX, libname, size) != <span class="literal">NULL</span>)</span><br><span class="line">        luaL_error(L, <span class="string">"name conflict for module "</span> LUA_QS, libname);</span><br><span class="line">      lua_pushvalue(L, <span class="number">-1</span>);</span><br><span class="line">      lua_setfield(L, <span class="number">-3</span>, libname);  <span class="comment">/* _LOADED[libname] = new table */</span></span><br><span class="line">    &#125;</span><br><span class="line">    lua_remove(L, <span class="number">-2</span>);  <span class="comment">/* remove _LOADED table */</span></span><br><span class="line">    lua_insert(L, -(nup+<span class="number">1</span>));  <span class="comment">/* move library table to below upvalues */</span></span><br><span class="line">  &#125;</span><br><span class="line">    <span class="comment">// 一般libName传入null</span></span><br><span class="line">  <span class="keyword">for</span> (; l-&gt;name; l++) &#123;</span><br><span class="line">    <span class="keyword">int</span> i;</span><br><span class="line">    <span class="keyword">for</span> (i=<span class="number">0</span>; i&lt;nup; i++)  <span class="comment">/* copy upvalues to the top */</span></span><br><span class="line">      lua_pushvalue(L, -nup);</span><br><span class="line">      <span class="comment">// 向栈内压入closure</span></span><br><span class="line">    lua_pushcclosure(L, l-&gt;func, nup);</span><br><span class="line">      <span class="comment">// 设置-2位置的table。此时为元表。设置name为key,栈顶元素为value，然后栈顶元素出栈。</span></span><br><span class="line">    lua_setfield(L, -(nup+<span class="number">2</span>), l-&gt;name);</span><br><span class="line">  &#125;</span><br><span class="line">  lua_pop(L, nup);  <span class="comment">/* remove upvalues */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其他的LuaSDK中的View和LVBaseView类似，可以类推。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/22/代码优雅设计/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1608,7 +1753,7 @@ id1 = id2 + t2
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-count">9</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

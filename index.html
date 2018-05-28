@@ -289,6 +289,459 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/28/LuaSDK插件化设计/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="David">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/image/logo.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="David's blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/28/LuaSDK插件化设计/" itemprop="url">LuaSDK插件化设计</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-28T21:56:34+08:00">
+                2018-05-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>LuaView SDK第二版设计插件化理解(一)</p>
+<ul>
+<li><p>插件化设计前序。装饰设计模式的理解。</p>
+<ul>
+<li><p>装饰者模式的理解。即一种内容成为其他的内容的装饰。这个装饰可以无限嵌套。比如我现在想要一个巧克力 奶油 草莓 蛋糕。 草莓可以是奶油的装饰，奶油又是巧克力的装饰，奶油巧克力草莓又是蛋糕的装饰。这样内容的嵌套构成了一个完整的蛋糕。下面使用java代码演示下过程</p>
+<pre><code>class Espreso implements  Beverage
+{
+    Beverage beverage;
+    public Espreso(Beverage beverage){
+        this.beverage = beverage;
+    }
+    @Override
+    public double cost() {
+        if (this.beverage == null) return  1.8;
+        return  1.8  + beverage.cost();
+    }
+
+    @Override
+    public String descripiton() {
+        return &quot;Espreso&quot;;
+    }
+}
+
+class  Trawberrys implements  Beverage
+{
+    // 装饰器
+    Beverage beverage;
+    public Trawberrys(Beverage beverage){
+        this.beverage = beverage;
+    }
+    @Override
+    public double cost() {
+        if (this.beverage == null) return  2.8;
+        return 2.8 + beverage.cost();
+    }
+
+    @Override
+    public String descripiton() {
+        return &quot;Trawberrys&quot;;
+    }
+}
+
+class Cake implements  Beverage
+{
+    // 装饰器
+    Beverage beverage;
+    public Cake(Beverage beverage){
+        this.beverage = beverage;
+    }
+    @Override
+    public double cost() {
+        if (this.beverage == null) return  29;
+        return 29 + beverage.cost();
+    }
+
+    @Override
+    public String descripiton() {
+        return &quot;Cake&quot;;
+    }
+}        
+</code></pre></li>
+</ul>
+</li>
+</ul>
+<p>在Main里面执行相应的装饰</p>
+<pre><code>public class Main {
+
+    public static void main(String[] args) {
+
+        System.out.println(&quot;Hello World!&quot;);
+
+        // 创建一个草莓对象
+        Trawberrys tarwberrys = new Trawberrys(null);
+        // 创建一个奶油对象。让草莓装饰它
+        Espreso espreso  = new Espreso(tarwberrys);
+        // 创建蛋糕对象,让奶油草莓装饰它
+        Cake cake = new Cake(espreso);
+        System.out.println(cake.cost());
+    }
+}
+</code></pre><p>大致可以理解为装饰的嵌套，A可以成为B的内层包装，B又可以成为C的包装，对象通过接口的方式形成了隐形的关联。</p>
+<ul>
+<li><p>上面简单介绍了装饰者模式，后面解析下刘旭在项目中设计的插件化的模式。native对象通过接口的方式获取了一个插件的实例。所有的跟Lua虚拟机的交互都交给这个插件去完成。比如构造方法注册到Lua虚拟机、类中的实例方法注册到当前对象对应的元表，注册全局方法，注册静态方法，注册全局对象等。</p>
+<ul>
+<li><p>下面分析下插件的基层协议。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> 基本插件协议</span><br><span class="line"> */</span><br><span class="line">@protocol MILPluginProtocol &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line">    // 插件的宿主类。遵循MILPluginExportProtocol协议的类对象</span><br><span class="line">@property (nonatomic, assign, readonly) Class&lt;MILPluginExportProtocol&gt; hostClass;</span><br><span class="line">    // 插件可以获取LuaCore。进而获取Lua虚拟机</span><br><span class="line">@property (nonatomic, weak, readonly) LuaViewCore *luaCore;</span><br><span class="line">    // 设置宿主类</span><br><span class="line">- (void)resetHostClass:(Class&lt;MILPluginExportProtocol&gt;)hostClass;</span><br><span class="line">    // 设置LuaCore</span><br><span class="line">- (void)resetLuaCore:(LuaViewCore *)luaCore;</span><br><span class="line">    // 注册方法到Lua虚拟机。注册的方法包括插件自身的和宿主类的</span><br><span class="line">- (void)registerHostClassToLua;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>上面提到的MILPluginExportProtocol 为可导出基类的协议。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> 可导出协议</span><br><span class="line"> */</span><br><span class="line">@protocol MILPluginExportProtocol &lt;NSObject&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line">+ (id&lt;MILPluginProtocol&gt;)pluginOfLua;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>可导出的基类协议返回的是一个基类的插件对象。就也是通过导出基类获取基插件，去执行相应的注册。 </p>
+</li>
+<li><p>类插件的协议如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> 类插件协议</span><br><span class="line"> */</span><br><span class="line">@protocol MILClassPluginProtocol &lt;MILPluginProtocol&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line">/**</span><br><span class="line"> 继承LUASDK中类时使用</span><br><span class="line"> </span><br><span class="line"> @param luaCore LuaViewCore对象</span><br><span class="line"> */</span><br><span class="line">    // 继承自LuaViewSDK的类通过 luaL_openlib(L, NULL, baseObjectFuncs, 0);原来SDK内部的注册方法进行注册</span><br><span class="line">- (void)openSDKSuperLibs:(LuaViewCore *)luaCore;</span><br><span class="line">//   这个方法暂时外部没有直接使用，在插件的内部通过宿主类拿到mm_lua_objc_class指针,然后调用这个方法进行注册。</span><br><span class="line">- (void)openlib:(LuaViewCore *)luaCore info:(const mm_lua_objc_class *)clazzInfo;</span><br><span class="line"></span><br><span class="line">// override</span><br><span class="line">@property (nonatomic, assign, readonly) Class&lt;MILClassProtocol&gt; hostClass;</span><br><span class="line">- (void)resetHostClass:(Class&lt;MILClassProtocol&gt;)hostClass;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>实体插件协议如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> 实体插件协议</span><br><span class="line"> */</span><br><span class="line">@protocol MILEntityPluginProtocol &lt;MILClassPluginProtocol&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line">    // 创建一个userData对象并压栈</span><br><span class="line">- (void)setup:(NSObject&lt;MILEntityClassProtocol&gt; *)obj;</span><br><span class="line">    // userData和对lv_userData的引用智控</span><br><span class="line">- (void)dealloc4Lua;</span><br><span class="line"></span><br><span class="line">// override</span><br><span class="line">@property (nonatomic, assign, readonly) Class&lt;MILEntityClassProtocol&gt; hostClass;</span><br><span class="line">- (void)resetHostClass:(Class&lt;MILEntityClassProtocol&gt;)hostClass;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>可导出类协议如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> 可导出类协议</span><br><span class="line"> */</span><br><span class="line">@protocol MILClassProtocol &lt;MILPluginExportProtocol&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line">    // 返回一个结构体指针对象，内部包含了所有我们想要的信息。比如methodLists。</span><br><span class="line">+ (const mm_lua_objc_class *)clazzInfo4Lua;</span><br><span class="line"></span><br><span class="line">// override</span><br><span class="line">+ (id&lt;MILClassPluginProtocol&gt;)pluginOfLua;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>可导出实体类协议如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> 可导出实体类协议</span><br><span class="line"> */</span><br><span class="line">@protocol MILEntityClassProtocol &lt;MILClassProtocol&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line">// override</span><br><span class="line">+ (id&lt;MILEntityPluginProtocol&gt;)pluginOfLua;</span><br><span class="line"></span><br><span class="line">@optional</span><br><span class="line">    //返回一个当前实体类关联到Lua虚拟机的userData对象</span><br><span class="line">- (LVUserDataInfo *)luaUserData;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>全局变量导出协议</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> 可导出全局变量协议</span><br><span class="line"> */</span><br><span class="line">@protocol MILGlobalVariablesProtocol &lt;MILPluginExportProtocol&gt;</span><br><span class="line"></span><br><span class="line">@required</span><br><span class="line">    // 具体的Value值</span><br><span class="line">+ (id)globalVarMap4lua;</span><br><span class="line">// 在lua的名称(注册到lua Global表的名称)</span><br><span class="line">+ (NSString *)nameInLua;</span><br><span class="line"></span><br><span class="line">@end</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>具体插件设计</p>
+<ul>
+<li>MILPlugin<ul>
+<li>遵循MILPluginProtocol 拥有基础的hostClass和luaCore属性。完成了基类的设置luaCore和宿主类的任务。额外提供了一个(const char <em>)nameOfmetaTable:(const char </em>)name packageName:(const char *)pkg; 方法。可以返回元表的名称</li>
+</ul>
+</li>
+<li><p>MILObjectPlugin</p>
+<ul>
+<li>实体类的基类插件。MILPlugin的子类。</li>
+<li>setup 通过classInfo4Lua获取一个mm_lua_objc_class结构体指针里面包含所有我们要的数据信息。然后生成一个userdata对象。获取元表设置元表到userData上。 这个方法的本质可以理解为LuaViewSDK中的构造方法。</li>
+<li>registerHostClassToLua 真实的注册过程。先拿到宿主工程的classInfo4Lua获取宿主工程的所有的数据信息。然后通过内部的[MILExporter reg:self.luaCore.l clazz:classInfo-&gt;clz constructor:classInfo-&gt;constructor.mn cfunc:classInfo-&gt;constructor.func name:classInfo-&gt;l_clz]; 把构造方法注册到Lua虚拟机的Global表。即比如通过View 字符串可以在Lua环境拿到这个闭包，然后通过()的方式调用。lv_createClassMetaTable 创建元表并压栈，然后将SDK的一些Base方法注册到元表中。 再有就是通过[self openlib:self.luaCore info:classInfo]; 将上面提到的机构体指针传入。递归宿主类的父类，把methodList依次注册到栈顶的元表当中。</li>
+<li>上面提到的(void)openSDKSuperLibs:(LuaViewCore *)luaCore 会调用SDK内最通用的注册方法luaL_openlib(L, NULL, baseObjectFuncs, 0); 将方法写入元表。luaL_openLib的详解看第一版解释。</li>
+<li>(void)openlib:(LuaViewCore <em>)luaCore info:(const mm_lua_objc_class </em>)clazzInfo 上面提到的openLib 方法会递归去执行向元表注册的过程，具体代码如下<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- (void)openlib:(LuaViewCore *)luaCore info:(const mm_lua_objc_class *)clazzInfo</span><br><span class="line">&#123;</span><br><span class="line">    NSAssert(luaCore.l, @&quot;The lua state must not be nil!&quot;);</span><br><span class="line">    lua_State *L = luaCore.l;</span><br><span class="line">    if (mm_HasSuperClass(clazzInfo)) &#123;</span><br><span class="line">        NSAssert(mm_CharPointIsNotNULL(clazzInfo-&gt;supreClz), @&quot;The super class name must be nil!&quot;);</span><br><span class="line">        Class superClass = NSClassFromString([NSString stringWithUTF8String:clazzInfo-&gt;supreClz]);</span><br><span class="line">        NSAssert([superClass respondsToSelector:@selector(clazzInfo4Lua)], @&quot;The -[%@ clazzInfo4Lua] method not found!&quot;,superClass);</span><br><span class="line">        [self openlib:luaCore info:[superClass clazzInfo4Lua]];</span><br><span class="line">    &#125;</span><br><span class="line">    mm_lua_openlib(L, NULL, clazzInfo-&gt;methods, 0);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>MILViewPlugin </p>
+<ul>
+<li><p>View对应的插件。重写了openSDKSuperLibs在这个方法里面调用了super的openSDKSuperLibs方法。然后又注册了LVView特有的一些列的funcs。这里提出一点小意见，感觉这里的话如果我设计会在ObjectPlugin留一个钩子，返回特定的数据。父类给空实现，子类有就调用，没有则忽略。父类非钩子的方法尽量不要重写，感觉稍微有点不优雅~ 。具体代码如下</p>
+<pre><code>- (void)openSDKSuperLibs:(LuaViewCore *)luaCore
+{
+    [super openSDKSuperLibs:luaCore];
+    mm_luaExtendBaseView(luaCore);
+}
+</code></pre></li>
+</ul>
+</li>
+<li><p>MILClassPlugin </p>
+<ul>
+<li>静态方法对应的插件。registerHostClassToLua 没有注册闭包到Lua虚拟机的过程。也没有创建元表的过程。仍然有[self openSDKSuperLibs:self.luaCore];    [self openlib:self.luaCore info:classInfo];的过程。其中openSDKSuperLibs为空实现。提供给外界的钩子方法。openlib 注册class-&gt;clz_methods方法到Global表中对应的当前类这张表中</li>
+</ul>
+</li>
+<li><p>MILGlobalVarPlugin</p>
+<ul>
+<li><p>注册全局对象到Lua虚拟机(具体到Global表)。内部最终[LVUtil defineGlobal:[clazz nameInLua] value:[clazz globalVarMap4lua] L:L];  将全局对象注册到Lua虚拟机的global表中 +(void) defineGlobal:(NSString<em>)globalName value:(id) value L:(lua_State</em>)L 方法如下  </p>
+<p>   +(void) defineGlobal:(NSString<em>)globalName value:(id) value L:(lua_State</em>)L {</p>
+<pre><code>if( globalName &amp;&amp; value ) {
+    lua_checkstack(L, 12);
+    lv_pushNativeObject(L, value);
+    lua_setglobal(L, globalName.UTF8String);
+} else {
+    LVError(@&quot;define Global Value&quot;);
+}
+</code></pre><p>   }</p>
+<p>value 转native对象压栈，然后在全局表设置key对应的value为native objc。</p>
+</li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/28/LuaSDK基础理解二/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="David">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/image/logo.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="David's blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/28/LuaSDK基础理解二/" itemprop="url">LuaSDK基础理解二</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-28T21:55:18+08:00">
+                2018-05-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>LuaSDK  第一版理解(二)</p>
+<ul>
+<li><p>设置全局方法</p>
+<pre><code>lv_defineGlobalFunc(&quot;Toast&quot;,  toast, L);  
+</code></pre><p>   调用处如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">void lv_defineGlobalFunc(const char* globalName, lua_CFunction func, lua_State* L) &#123;</span><br><span class="line">    if( globalName &amp;&amp; func ) &#123;</span><br><span class="line">        // 检查栈空间</span><br><span class="line">        lua_checkstack(L, 12);</span><br><span class="line">        // 将c func 压栈</span><br><span class="line">        lua_pushcfunction(L, func);</span><br><span class="line">        //  设置globalName为key,func 为value 到全局表</span><br><span class="line">        lua_setglobal(L, globalName);</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        LVError(@&quot;define Global Function&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置全局常量。把原生对象转成lua对象。然后压栈。通过Global 表进行设置。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">NSDictionary* v = nil;</span><br><span class="line">       v = @&#123;</span><br><span class="line">             @&quot;FILL&quot;:    @(kCGPathFill),</span><br><span class="line">             @&quot;EOFILL&quot;:   @(kCGPathEOFill),//__deprecated_msg(&quot;&quot;)</span><br><span class="line">             @&quot;STROKE&quot;:   @(kCGPathStroke),</span><br><span class="line">             @&quot;FILLSTROKE&quot;:   @(kCGPathFillStroke),</span><br><span class="line">             @&quot;EOFILLSTROKE&quot;:   @(kCGPathEOFillStroke),//__deprecated_msg(&quot;&quot;)</span><br><span class="line">       &#125;;</span><br><span class="line">       [LVUtil defineGlobal:@&quot;PaintStyle&quot; value:v L:L];</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>定义全局方法详情如下</p>
+<pre><code>+(void) defineGlobal:(NSString*)globalName value:(id) value L:(lua_State*)L {
+    if( globalName &amp;&amp; value ) {
+        // 检查栈空间大小
+        lua_checkstack(L, 12);
+        // native对象转lua对象压栈。
+        lv_pushNativeObject(L, value);
+        // 设置对象到Global表
+        lua_setglobal(L, globalName.UTF8String);
+    } else {
+        LVError(@&quot;define Global Value&quot;);
+    }
+}
+</code></pre><p>经过执行之后我们便可以直接到Lua那面使用PaintStyle。 通过PaintStyle我们可以在当前环境的Global表中获取这个Table。然后从table中取出具体的数据。</p>
+<ul>
+<li>注册静态类及静态方法<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"> luaL_openlib(L, &quot;System&quot;, staticFunctions, 0);</span><br><span class="line">LUALIB_API void luaI_openlib (lua_State *L, const char *libname,</span><br><span class="line">                              const luaL_Reg *l, int nup) &#123;</span><br><span class="line">  if (libname) &#123;</span><br><span class="line">      // 获取结构体数组大小</span><br><span class="line">    int size = libsize(l);</span><br><span class="line">    /* check whether lib already exists */</span><br><span class="line">      // 去注册表查看_LOADED 表是否存在</span><br><span class="line">    luaL_findtable(L, LUA_REGISTRYINDEX, &quot;_LOADED&quot;, 1);</span><br><span class="line">      // lua_getfield先在指定位置获取表。libname压栈，从指定位置表获取内存，key出栈，value进栈</span><br><span class="line">    lua_getfield(L, -1, libname);  /* get _LOADED[libname] */</span><br><span class="line">      // 栈顶不是table，也就是没有找到的话。</span><br><span class="line">    if (!lua_istable(L, -1)) &#123;  /* not found? */</span><br><span class="line">        // 把nil出栈</span><br><span class="line">      lua_pop(L, 1);  /* remove previous result */</span><br><span class="line">      /* try global variable (and create one if it does not exist) */</span><br><span class="line">        // 在global表去尝试找一下。如果存在则报错，没有则创建一个table并压栈。</span><br><span class="line">      if (luaL_findtable(L, LUA_GLOBALSINDEX, libname, size) != NULL)</span><br><span class="line">        luaL_error(L, &quot;name conflict for module &quot; LUA_QS, libname);</span><br><span class="line">        // 创建指定名称的表的拷贝</span><br><span class="line">      lua_pushvalue(L, -1);</span><br><span class="line">        // 设置Load[libname] = 新表。</span><br><span class="line">        // lua_setfield 设置完毕栈顶元素出栈</span><br><span class="line">      lua_setfield(L, -3, libname);  /* _LOADED[libname] = new table */</span><br><span class="line">    &#125;</span><br><span class="line">      // 移除_LOADED表</span><br><span class="line">    lua_remove(L, -2);  /* remove _LOADED table */</span><br><span class="line">      // 交互栈顶与指定位置的元素</span><br><span class="line">    lua_insert(L, -(nup+1));  /* move library table to below upvalues */</span><br><span class="line">  &#125;</span><br><span class="line">    // 拿到上面获取的表。</span><br><span class="line">  for (; l-&gt;name; l++) &#123;</span><br><span class="line">    int i;</span><br><span class="line">    for (i=0; i&lt;nup; i++)  /* copy upvalues to the top */</span><br><span class="line">      lua_pushvalue(L, -nup);</span><br><span class="line">      // 以name为key，func为value写入上面拿到的表。</span><br><span class="line">    lua_pushcclosure(L, l-&gt;func, nup);</span><br><span class="line">    lua_setfield(L, -(nup+2), l-&gt;name);</span><br><span class="line">  &#125;</span><br><span class="line">  lua_pop(L, nup);  /* remove upvalues */</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<ul>
+<li><p>原生调用Lua的方式</p>
+<ul>
+<li><p>通过拿到对象的环境表中USERDATA_KEY_DELEGATE表的方式。</p>
+<pre><code>// userData 压栈
+</code></pre><ul>
+<li><p>lv_pushUserdata(L, self.owner.lv_userData);</p>
+</li>
+<li><p>lv_pushUDataRef(L, USERDATA_KEY_DELEGATE); </p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">void lv_pushUDataRef(lua_State* L, int key) &#123;</span><br><span class="line">    // -1:userdata</span><br><span class="line">    if( lua_gettop(L)&gt;=1 &amp;&amp; lua_type(L, -1)==LUA_TUSERDATA ) &#123;</span><br><span class="line">        lua_checkstack(L, 2);</span><br><span class="line">        // 获取userdata对应的env</span><br><span class="line">        if( lv_getUDataLuatable(L, -1) ) &#123;</span><br><span class="line">            // 移除userdata对象</span><br><span class="line">            lua_remove(L, -2);</span><br><span class="line">        &#125;</span><br><span class="line">        if( lua_type(L, -1)==LUA_TTABLE ) &#123;</span><br><span class="line">//            NSLog(@&quot;%@&quot;, lv_luaTableToDictionary(L, -1));</span><br><span class="line">            // 压入key此时为USERDATA_KEY_DELEGATE</span><br><span class="line">            lua_pushnumber(L, key);</span><br><span class="line">            // 在环境表通过USERDATA_KEY_DELEGATE拿到对应的表并压栈</span><br><span class="line">            lua_gettable(L, -2);</span><br><span class="line">            // 移除env 表</span><br><span class="line">            lua_remove(L, -2);</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            LVError( @&quot;lv_pushUDataRef.1&quot; );</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        LVError( @&quot;lv_pushUDataRef.2&quot; );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<pre><code>执行[LVUtil call:L key1:&quot;Cell&quot; key2:identifier.UTF8String key3:&quot;Init&quot; nargs:3 nrets:0 retType:LUA_TNONE];  此时栈顶为环境表对应的USERDATA_KEY_DELEGATE表。这张表示在lua那面获取的，通过Key逐级获取元素，多个key即key分别对应多个table，逐级调用。将最后一级的func压栈。最后通过lv_runFunctionWithArgs进行lua_call方法的调用。方法需要的参数依次在栈内获取。
+如果Lua中的func有返回值，则在上面方法指定，lua虚拟机 会将对应的返回值压栈，我们可以在栈内获取。
+
+
+- native通过发通知的方式告诉Lua
+
+
+    [[MDContext globalEventCenter] postEvent:luaLoadMoreDataNotification options:@{@&quot;dst_l_evn&quot;: @(MDGlobalEventnEvironmentLua)} evironment:MDGlobalEventnEvironmentNative];
+
+- lua与native通信。调用桥接的userdata对象。通过userdata的元表找到相应的func。
+</code></pre><p>​    </p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/24/LuaSDK理解/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1575,137 +2028,13 @@ id1 = id2 + t2
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/04/19/hello-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="David">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/image/logo.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="David's blogs">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/19/hello-world/" itemprop="url">Hello World</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-19T14:51:46+08:00">
-                2018-04-19
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
+  <nav class="pagination">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
+  </nav>
+
 
 
           </div>
@@ -1753,7 +2082,7 @@ id1 = id2 + t2
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">9</span>
+                  <span class="site-state-item-count">11</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

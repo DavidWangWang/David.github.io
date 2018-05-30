@@ -79,17 +79,20 @@
 
 
 
-<meta name="description" content="编译原理学习  名词解释  翻译器  translator 编译器 compiler  高级语言—&amp;gt;低级语言  词法分析  输入的字符流通过词法分析器转换为记号流 position = initial + rate* 60 // 在符号表中根据索引找到对应的元素 &amp;lt;id,1&amp;gt; = &amp;lt;id,2&amp;gt; &amp;lt;+&amp;gt;&amp;lt;id,3&amp;gt;&amp;lt;*&amp;gt;&amp;lt;6">
+<meta name="description" content="Lua字符串的设计 在Lua中字符串是一种被内化的数据类型。怎么理解被内化的含义呢？简单来说就是每个存放Lua字符串的变量。存储的都不是字符串内容的拷贝，而是它的一份引用。因此每当创建新的字符串的时候，我们首先要检查系统中是否已经存在一份相同的字符串了，如果有的话，直接让当前的指针变量指向它，否则就创建一份新的字符串数据，然后让当前指针指向。       因为字符串并非保存的是实际内容的拷贝而是引">
 <meta property="og:type" content="article">
-<meta property="og:title" content="编译原理学习">
-<meta property="og:url" content="http://davidwang.club/2018/05/13/编译原理学习/index.html">
+<meta property="og:title" content="Lua字符串设计">
+<meta property="og:url" content="http://davidwang.club/2018/05/30/Lua字符串设计/index.html">
 <meta property="og:site_name" content="David&#39;s blogs">
-<meta property="og:description" content="编译原理学习  名词解释  翻译器  translator 编译器 compiler  高级语言—&amp;gt;低级语言  词法分析  输入的字符流通过词法分析器转换为记号流 position = initial + rate* 60 // 在符号表中根据索引找到对应的元素 &amp;lt;id,1&amp;gt; = &amp;lt;id,2&amp;gt; &amp;lt;+&amp;gt;&amp;lt;id,3&amp;gt;&amp;lt;*&amp;gt;&amp;lt;6">
+<meta property="og:description" content="Lua字符串的设计 在Lua中字符串是一种被内化的数据类型。怎么理解被内化的含义呢？简单来说就是每个存放Lua字符串的变量。存储的都不是字符串内容的拷贝，而是它的一份引用。因此每当创建新的字符串的时候，我们首先要检查系统中是否已经存在一份相同的字符串了，如果有的话，直接让当前的指针变量指向它，否则就创建一份新的字符串数据，然后让当前指针指向。       因为字符串并非保存的是实际内容的拷贝而是引">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2018-05-19T10:50:51.579Z">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/5847996-dbac1ccf5c261192.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/5847996-3171c24b8ef22c6a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2018-05-30T14:20:55.763Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="编译原理学习">
-<meta name="twitter:description" content="编译原理学习  名词解释  翻译器  translator 编译器 compiler  高级语言—&amp;gt;低级语言  词法分析  输入的字符流通过词法分析器转换为记号流 position = initial + rate* 60 // 在符号表中根据索引找到对应的元素 &amp;lt;id,1&amp;gt; = &amp;lt;id,2&amp;gt; &amp;lt;+&amp;gt;&amp;lt;id,3&amp;gt;&amp;lt;*&amp;gt;&amp;lt;6">
+<meta name="twitter:title" content="Lua字符串设计">
+<meta name="twitter:description" content="Lua字符串的设计 在Lua中字符串是一种被内化的数据类型。怎么理解被内化的含义呢？简单来说就是每个存放Lua字符串的变量。存储的都不是字符串内容的拷贝，而是它的一份引用。因此每当创建新的字符串的时候，我们首先要检查系统中是否已经存在一份相同的字符串了，如果有的话，直接让当前的指针变量指向它，否则就创建一份新的字符串数据，然后让当前指针指向。       因为字符串并非保存的是实际内容的拷贝而是引">
+<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/5847996-dbac1ccf5c261192.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
 
 
 
@@ -119,13 +122,13 @@
 
 
 
-  <link rel="canonical" href="http://davidwang.club/2018/05/13/编译原理学习/"/>
+  <link rel="canonical" href="http://davidwang.club/2018/05/30/Lua字符串设计/"/>
 
 
 
 
 
-  <title>编译原理学习 | David's blogs</title>
+  <title>Lua字符串设计 | David's blogs</title>
   
 
 
@@ -292,7 +295,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/13/编译原理学习/">
+    <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/30/Lua字符串设计/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="David">
@@ -309,7 +312,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">编译原理学习</h1>
+          <h1 class="post-title" itemprop="name headline">Lua字符串设计</h1>
         
 
         <div class="post-meta">
@@ -321,8 +324,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-13T12:00:06+08:00">
-                2018-05-13
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-30T22:20:37+08:00">
+                2018-05-30
               </time>
             
 
@@ -359,69 +362,190 @@
       
 
       
-        <ul>
-<li><ul>
-<li><p>编译原理学习</p>
+        <p>Lua字符串的设计</p>
+<p>在Lua中字符串是一种被内化的数据类型。怎么理解被内化的含义呢？简单来说就是每个存放Lua字符串的变量。存储的都不是字符串内容的拷贝，而是它的一份引用。因此每当创建新的字符串的时候，我们首先要检查系统中是否已经存在一份相同的字符串了，如果有的话，直接让当前的指针变量指向它，否则就创建一份新的字符串数据，然后让当前指针指向。      </p>
+<p>因为字符串并非保存的是实际内容的拷贝而是引用，因此Lua字符串是不可变的。我们联想下Java或者OC中字符串不可变的原因。是否也是相同的设计，保存的只是字符串的引用，因为一旦改变了字符串a的引用，a原来指向的内存中的内容并不会改变。Java和OC都推荐直接使用字面量的方式创建字符串，都说这样高效。那高效体现在什么地方呢。</p>
+<p>Java 字符串通过字面量创建首先会去字符串池去查找有无相应的字符串，如果有则直接让当前变量执行相应的内存。同样OC字面量创建会自动去常量存储区去查找,也是类似的机制。那么我们是否可以推断3种语言的字符串底层设计是一样的？</p>
+<pre><code>a = &apos;1&apos;
+a = &apos;1&apos;..&apos;2&apos;
+</code></pre><p>上面代码具体的执行过程如下图</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5847996-dbac1ccf5c261192.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image-20180530153925382.png"></p>
+<p>改变a的只是a的指向，并不会对a原先指向的内存产生任何影响。</p>
+<p>上面谈到了Lua字符串是一种被内化的数据类型。那么为了实现Lua字符串创建之前的查询，必须有一个空间去存储已经创建而且没有被GC的所有字符串。Lua虚拟机使用一个散列桶的方式管理字符串。</p>
+<p>Lua在字符串实现上使用内化的优点在于。</p>
 <ul>
-<li><p>名词解释</p>
+<li>时间上。进行字符串的查找和比较操作的时候性能会有很大的提高。传统的字符串的查找和比较，需要遍历字符串的每一个字符，时间复杂度取决于字符串的长度，是线性递增的。而Lua进行字符串的比较和查询的时候，首先去比较字符串的hash值，这一步是O(1)的时间复杂度，这一步没有比较出来后，会对具体的两个字符串进行长度比较，最后仍然没有比较出来，才会进行逐位比较。大多情况下，前2步会对绝大多数情况进行过滤，字符串比较和查询很大程度是O(1)的时间复杂度。</li>
+<li>空间上。因为是一个内化的方式，所有相关的字符串是共享一块内存。这极大的节省了相同字符串带来的内存消耗。</li>
+</ul>
+<p>以上设计可以看到，Lua在设计之初就把性能和资源占用放到重要位置。</p>
+<p>字符串的数据结构如下</p>
+<pre><code>typedef union TString {
+  L_Umaxalign dummy;  /* ensures maximum alignment for strings */
+  struct {
+    CommonHeader;
+    lu_byte reserved;
+    unsigned int hash;
+    size_t len;
+  } tsv;
+} TString;
+</code></pre><p>关于字符串的数据结构具体几部分上一篇有解释，现在重复一遍。</p>
 <ul>
-<li>翻译器  translator</li>
-<li><p>编译器 compiler  高级语言—&gt;低级语言</p>
+<li>L_Umaxalign 是一个联合体define LUAI_USER_ALIGNMENT_T union { double u; void *s; long l; } 它的类型大小会取这三种类型中最大的。在C语言中，struct/unicon会按照最大字节进行内存对齐的，为的降低CPU获取数据的访问周期，提高CPU的访问效率。</li>
+<li>内部的结构体tsv。CommonHeader同理，<ul>
+<li>reserved标注当前字符串是否是关键字，标记的关键字将不会在GC阶段被回收</li>
+<li>hash 改字符串的散列值。Lua字符串比较并不会像其他的语言那种一般的做法进行诸位比较。而是仅仅比较字符串的散列值。</li>
+<li>len 字符串的长度</li>
+</ul>
+</li>
+</ul>
+<p>我们刚才提到了会有一个散列桶会存储Lua中所有的字符串。这个变量是global_state 的strt。具体的结构</p>
+<pre><code>typedef struct stringtable {
+  GCObject **hash;       // 存放的GCObject *的list
+  lu_int32 nuse;  /* number of elements */   
+  int size;        // 散列桶的大小
+} stringtable;
+</code></pre><p><img src="https://upload-images.jianshu.io/upload_images/5847996-3171c24b8ef22c6a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image-20180530160203156.png"></p>
+<p>散列桶的结构类似上图。外层数组，内层链表的结构。</p>
+<p>接下来我们看一下创建一个新的字符串的过程</p>
+<p>伪代码 </p>
+<pre><code> 根据字符串的hash值去散列桶去查找具体的桶
+
+     找到对应的桶后，先比较长度
+
+         长度相同，逐位比较字符
+
+            均相同找到字符串，看当前字符串处于的状态，if isdead(o) 则改变字符串状态并返回
+
+没找到直接创建新字符串          
+</code></pre><p>真实代码</p>
+<pre><code>TString *luaS_newlstr (lua_State *L, const char *str, size_t l) {
+  GCObject *o;
+    // 类型转换
+  unsigned int h = cast(unsigned int, l);  /* seed */
+    //右移运算。 比如32 二进制表示 00100000 则右面移5位 为00000001 = 2 
+  size_t step = (l&gt;&gt;5)+1;  /* if string is too long, don&apos;t hash all its chars */
+  size_t l1;
+  for (l1=l; l1&gt;=step; l1-=step)  /* compute hash */
+      // 取出指定字符串对应的散列值
+    h = h ^ ((h&lt;&lt;5)+(h&gt;&gt;2)+cast(unsigned char, str[l1-1]));
+    // 去散列桶去查找到对应的桶
+  for (o = G(L)-&gt;strt.hash[lmod(h, G(L)-&gt;strt.size)];
+       o != NULL;
+       o = o-&gt;gch.next) {
+      // 这里面均为对应的桶中链表对应的元素
+    TString *ts = rawgco2ts(o);
+      // 先比较长度，长度不符合继续查找next，长度符合诸位比较
+    if (ts-&gt;tsv.len == l &amp;&amp; (memcmp(str, getstr(ts), l) == 0)) {
+      /* string may be dead */
+      if (isdead(G(L), o)) changewhite(o);
+      return ts;
+    }
+  }
+    // 如果找不到对应的散列桶直接去创建新的字符串。
+  return newlstr(L, str, l, h);  /* not found */
+}
+</code></pre><p>上面具体的过程注意的地方2点。</p>
 <ul>
-<li><p>词法分析  输入的字符流通过词法分析器转换为记号流</p>
-<pre><code>position = initial + rate* 60
-// 在符号表中根据索引找到对应的元素
-&lt;id,1&gt; = &lt;id,2&gt; &lt;+&gt;&lt;id,3&gt;&lt;*&gt;&lt;60&gt;
-</code></pre></li>
-<li><p>语法分析<br> 任何一个标识符都是表达式<br> 任何一个数都是表达式<br>通过构造语法分析树。来判断某个式子是否是表达式<br>一般都会把分析树进行简化为语法🌲</p>
-</li>
-<li><p>语义分析<br> 输入的是语法树,类型检查后，如果有类型转换的话会插入一些类型转换相关的内容，生成一棵语法树</p>
-</li>
-<li>中间代码生成器<br> 从语法树自下而上生成一些列的临时变量。得到三地址中间代码(对2个对象进行操作,保存到另外一个临时变量中)</li>
-<li><p>独立于机器的代码优化器<br>t1 = inttoreal(60)    能在编译期做的事情不要放在运行期，否则像这样的转换语句，如果放在循环当中的话，会执行N此，但是如果编译期间优化完成的话，只会转换一次<br>对三地址语句的优化</p>
-<pre><code>t1 =  inttoreal(60)
-t2 = id3* t1
-t3 =id2 +t2
-id1 = t3
+<li>当字符串特别大的时候没有必要诸位比较，每次比较取一个步长</li>
+<li>获取的当前字符串如果处于GC阶段，改变它的状态，达到复用的目的。</li>
+</ul>
+<p>下面看下如果查找不到创建一个新串的过程</p>
+<pre><code>static TString *newlstr (lua_State *L, const char *str, size_t l,
+                                       unsigned int h) {
+    // 一个新的字符串的指针
+  TString *ts;
+    // stringable 结构体指针
+  stringtable *tb;
+    // 如果字符串过大，直接报错返回NULL
+  if (l+1 &gt; (MAX_SIZET - sizeof(TString))/sizeof(char))
+    luaM_toobig(L);
+    // 创建字符串
+  ts = cast(TString *, luaM_malloc(L, (l+1)*sizeof(char)+sizeof(TString)));
+    // 字符串的长度为l
+  ts-&gt;tsv.len = l;
+    // 字符串的散列值为h
+  ts-&gt;tsv.hash = h;
+    // 字符串为白色(标记GC的时候回根据字符串的状态进行回收)
+  ts-&gt;tsv.marked = luaC_white(G(L));
+    // 数据类型
+  ts-&gt;tsv.tt = LUA_TSTRING;
+    // 不是关键字
+  ts-&gt;tsv.reserved = 0;
+    // 拷贝str到ts+1位置
+  memcpy(ts+1, str, l*sizeof(char));
+   // 字符串最后一位&apos;\0&apos;
+  ((char *)(ts+1))[l] = &apos;\0&apos;;  /* ending 0 */
+    // 获取global_State中的散列桶
+  tb = &amp;G(L)-&gt;strt;
+    // 计算散列通中的存储位置
+  h = lmod(h, tb-&gt;size);
+    // 如果原来位置有元素则next指针指向它。 
+  ts-&gt;tsv.next = tb-&gt;hash[h];  /* chain new entry */
+    // 类型转换TString转为GCObject
+  tb-&gt;hash[h] = obj2gco(ts);
+    // 数量+1
+  tb-&gt;nuse++;
+    // 散列桶每个桶的上元素过多，触发重新分配。
+  if (tb-&gt;nuse &gt; cast(lu_int32, tb-&gt;size) &amp;&amp; tb-&gt;size &lt;= MAX_INT/2)
+    luaS_resize(L, tb-&gt;size*2);  /* too crowded */
+  return ts;
+}
+</code></pre><p>总结上面 </p>
+<ul>
+<li>创建新的字符串。填充TString上每个Value的值。</li>
+<li>计算当前字符串在散列桶上对应的桶，如果有值，则当前字符串的next指针指向对应桶(链表)的首位</li>
+<li>将对应的桶的首位赋值为创建的TString</li>
+<li>元素数量+1</li>
+<li>如果每个桶上元素过多，触发重散列。</li>
+</ul>
+<p>具体的重散列的过程如下</p>
+<pre><code>void luaS_resize (lua_State *L, int newsize) {
+    // GCObject * 的列表
+  GCObject **newhash;
+    // 结构体指针
+  stringtable *tb;
+  int I;
+    // GC阶段则返回
+  if (G(L)-&gt;gcstate == GCSsweepstring)
+    return;  /* cannot resize during GC traverse */
+    // 创建一个List
+  newhash = luaM_newvector(L, newsize, GCObject *);
+  tb = &amp;G(L)-&gt;strt;
+    // 初始化
+  for (i=0; i&lt;newsize; i++) newhash[i] = NULL;
+  /* rehash */
+  for (i=0; i&lt;tb-&gt;size; i++) {
+      // 在散列桶中找到对应的桶
+    GCObject *p = tb-&gt;hash[I];
+      // p为桶中的header指针
+    while (p) {  /* for each node in the list */
+      GCObject *next = p-&gt;gch.next;  /* save next */
+        // 获取对应的TString的hash值
+      unsigned int h = gco2ts(p)-&gt;hash;
+        // 获取一个新的位置
+      int h1 = lmod(h, newsize);  /* new position */
+      lua_assert(cast_int(h%newsize) == lmod(h, newsize));
+        // p-&gt;gch的next指针指向当前位置。为了是p-&gt;gch成为header
+      p-&gt;gch.next = newhash[h1];  /* chain it */
+        // 成为header
+      newhash[h1] = p;
+        // 赋值循环取链表下一个节点
+      p = next;
+    }
+  }
+   //释放旧的散列桶
+  luaM_freearray(L, tb-&gt;hash, tb-&gt;size, TString *);
+  tb-&gt;size = newsize;
+  tb-&gt;hash = newhash;
+}
+</code></pre><p>重散列流程如下(上面代码掺杂防御式编程的思想,进行具体的流程之前，对当前的状态及传入的数据进行异常判断)</p>
+<ul>
+<li>判断当前状态，GC阶段则Return</li>
+<li>开辟并初始化新的GCObject **</li>
+<li>遍历原来的散列桶。遍历每个具体的桶，根据hash算法拿到的新的散列值确定当前元素的位置。并chain起来</li>
+<li>释放旧的散列桶，赋值新的。</li>
+</ul>
 
-进行代码优化器优化
-
-t2 = id3 * 60.0  //常量传播
-id1 = id2 + t2
-</code></pre></li>
-<li><p>代码生成器<br> 三地址中间代码 通过代码生成器 生成汇编代码。</p>
-</li>
-<li>依赖机器的代码优化器</li>
-<li>目标机器代码<br>  符号表会把各个阶段存储进去</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<pre><code>  - 解释器  interpreter 
-
-    - 解释器也要进行词法分析、语法分析、语义分析中间代码生成。
-    - 解释器不生成目标代码，而是直接执行源程序所指定的运算。
--  编译器分为前端和后端
-  - 中间代码生成
-  - 后面生成特定的机器代码
-- 高级语言的实现
-  - 高级语言更易于编程，但是程序运行较慢
-  - 低级语言编程可以实施更有效的控制，得到更有效的代码，但是难于编写容易出错
-  - 流行的编程语言大多向着提高抽象层级的方向发展
-- 针对计算机体系结构的优化
-  - 计算机体系结构的优化迅速演化引起对新的编译器技术的一种不知足的需求。计算机体系有某种新特性，编译器必须给支持，否则只能编写汇编代码，来达到想要的目的。
-  - 编译器重新整理指令，使得指令级并行更有效
-  - 编译器从传统的串行程序自动生成并行程序，使之运行与多处理器上。
-- 提高软件开发效率的工具
-  - 类型检查 是一种检查程序前后不一致的成熟而有效的技术
-  - 边界检查。检查出一部分缓存区移除，
-  - 自动的内存管理删除内存泄露的相关错误。
-</code></pre>
       
     </div>
     
@@ -445,8 +569,8 @@ id1 = id2 + t2
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2018/05/12/LuaCAPI总结二/" rel="next" title="LuaCAPI总结二">
-                <i class="fa fa-chevron-left"></i> LuaCAPI总结二
+              <a href="/2018/05/29/LuaSDK插件化设计二/" rel="next" title="LuaSDK插件化设计二">
+                <i class="fa fa-chevron-left"></i> LuaSDK插件化设计二
               </a>
             
           </div>
@@ -454,10 +578,6 @@ id1 = id2 + t2
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2018/05/22/代码优雅设计/" rel="prev" title="代码优雅设计">
-                代码优雅设计 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>

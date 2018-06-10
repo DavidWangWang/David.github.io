@@ -289,6 +289,195 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/06/10/SQL-select查询语句/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="David">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/image/logo.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="David's blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/06/10/SQL-select查询语句/" itemprop="url">SQL+select查询语句</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-10T22:29:10+08:00">
+                2018-06-10
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>SQL查询语句</p>
+<ul>
+<li>创建计算字段 <pre><code>SELECT vender_name || &apos; (&apos; ||  vender_country || &apos;)&apos;
+</code></pre></li>
+<li><p>MySQL上 创建计算字段</p>
+<p>  SELECT Contact(vender_name,’ (‘,vender_country,’)’) From table order by name</p>
+</li>
+<li><p>去除两边的空格。<br>  SELECT RTRIM(vender_name) + ‘(‘ + RTRIM(vender_country) + ‘)’</p>
+</li>
+<li>为创建的计算字段起别名<br>  SELECT Contact(vender_name,’ (‘,vender_country,’)’) AS vender_title From table order by name</li>
+<li>执行算数计算<pre><code>SELECT prod_id,quantity,item_price,quantity*item_price AS expanded_price From OrderItems WHERE order_num = 20008
+</code></pre></li>
+</ul>
+<p>文本处理函数</p>
+<ul>
+<li>UPPER<pre><code>SELECT vender_name ,UPPER(vender_name) AS vend_name_upcase FROM Vendors ORDER BY vend_name
+</code></pre></li>
+<li>LEFT 返回字符串左边的字符</li>
+<li>LENGTH() 返回字符串的长度</li>
+<li>LOWER()  将字符串变为小写</li>
+<li>LIRIM()  去掉字符串左边的空格</li>
+<li>RIRIM() 去掉字符串右面的空格</li>
+<li>RIGHT() 返回字符串右面的字符</li>
+<li>SOUNDEX()返回字符串的SOUNDEX值</li>
+</ul>
+<p>汇总数据</p>
+<ul>
+<li>AVG 求平均值<pre><code>SELECT AVG(price) AS avg_price FROM table
+</code></pre></li>
+<li>COUNT(*) 对表中行进行计数。无论是列中是否包含空值。COUNT(column)对特定的列中具有值的行进行统计</li>
+<li>MAX() 返回指定列中的最大值。如果是文本则返回排序后的最后一行</li>
+<li>MIN()作用和上面完全相反。返回最大值的行。 文本的话返回排序后的第一行。</li>
+<li>SUM(item_price * quantity) 返回订单中所有物品价钱之和。</li>
+<li>SELECT COUNT(DISTINCT price ) AS item_price FROM Table WHERE id = 10.过滤不同值。</li>
+<li>组合使用 <pre><code>SELECT COUNT(*) AS num_items MIN(prod_price) AS price_min,MAX(price_max) AS price_max,AVG(prod_price) AS price_avg FROM TABLE
+</code></pre></li>
+</ul>
+<p>创建分组</p>
+<ul>
+<li><p>GROUP BY创建分组</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT vend_id ,COUNT(*) AS num_prods FROM Products Group By vend_id</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>GROUP By子句必须出现在WHERE 之后，ORDER BY之前。</p>
+</li>
+<li>HAVING 可以替代所有的WHERE 只不过HAVING过滤的是分组，WHERE过滤的是行。</li>
+<li><p>HAVING和WHERE 结合用。 </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT vend_id,COUNT(*) AS num_prods FROM table WHERE price&gt;4 GROUP by vend_id HAVING COUNT(*)&gt;2</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>ORDER By 和GROUP BY结合来使用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT order_numer,COUNT(*) AS item_count FROM table GROup By id HAVing COUNT(*)&gt;2 ORDER by item_count</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>子查询</p>
+<ul>
+<li>我们先查阅包含RANG01的订单号<pre><code>SELECT order_id FROM goods WHERE goods_name = &apos;RANG01&apos;
+</code></pre></li>
+<li>根据订单id查询所有user_id<pre><code>SELECT user_id FROM oders WHERE order_id in (&apos;1001&apos;,&apos;1002&apos;)
+</code></pre></li>
+<li>根据user_id获取用户的信息<pre><code>SELECT user_name ,user_age FROM users WHERE user_id in (&apos;1333&apos;,&apos;1332&apos;)
+</code></pre></li>
+<li><p>主查询嵌套子查询</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT user_name ,user_age FROM users WHERE user_id in (SELECT user_id FROM oders WHERE order_id in (SELECT order_id FROM goods WHERE goods_name = &apos;RANG01&apos;))</span><br></pre></td></tr></table></figure>
+<p>查询语句可以嵌套，作为子查询的SELECT 语句只能查询单独的列，企图索引多列将返回错误。</p>
+</li>
+<li><p>计算字段使用子查询</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT name,age,(COUNT(*)FROM wn_table WHERE wn_table.order_id = ll_table.order_id) AS ids FROM wn_table ORDER BY cust_name</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>上面的复杂的子查询还可以通过内连结的方式</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">SELECT cust_name,cust_contact FROM</span><br><span class="line">Customers,Orders,OrderItems WHERE Customers.cust_id =  </span><br><span class="line">Orders.cust_id And OrderItems.order_num =   Order.order_num               AND prod_id = &apos;RANG01&apos;;</span><br></pre></td></tr></table></figure></li>
+</ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/30/Lua字符串设计/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2376,186 +2565,6 @@ id1 = id2 + t2
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://davidwang.club/2018/05/05/SQL查询语句基本使用/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="David">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/image/logo.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="David's blogs">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/05/05/SQL查询语句基本使用/" itemprop="url">SQL查询语句基本使用</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-05T22:15:29+08:00">
-                2018-05-05
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h3 id="SQL系统学习"><a href="#SQL系统学习" class="headerlink" title="SQL系统学习"></a>SQL系统学习</h3><ul>
-<li>SELECT数据查询操作(检索一列SELECT name from table) <ul>
-<li>在一个表中查询某个字段 SELECT name from table。这个查询语句可以输出表中为name字段的所有值</li>
-<li>多条SQL语句使用;分割开。可以同时查询多条</li>
-<li>对关键字使用大写，对列和表使用小写</li>
-<li>处于SQL时候不区分空格。所有的空格都可以被忽略，SQL可以写成一行，当然也可以写成多行。作用是一样的</li>
-</ul>
-</li>
-<li>SELECT检索多列(SELECT name,age from table)<ul>
-<li>检索多列，要使用,分割，最后一列不需要使用,分割。</li>
-<li>SQL语句返回的是原始的数据,无格式的数据。数据的格式是表示问题，而不是检索问题。</li>
-</ul>
-</li>
-<li>SELECT 检索出所有列(SELECT * FROM table)<ul>
-<li>检索出所有列，但是如果明确字段名的情况下，尽量不要这么使用。直接使用列名，因为这样会降低检索和应用程序的性能。</li>
-<li>直接使用通配符的情况，可以检索出未知列。</li>
-</ul>
-</li>
-<li>SELECT DISTINCT age FROM table 检索不同的值<ul>
-<li>但是需要注意，关键字作用于所有的列。不仅仅是跟在关键字后面的那一列。</li>
-</ul>
-</li>
-<li>对SELECT 返回的数据的数量进行限制,不同的DBMS不同，我们记下使用最多的MySQL,<ul>
-<li>SELECT name FROM table LIMIT 5   限制查询不超过5条数据</li>
-<li>SELECT name FROM table LIMIT 5 OFFSET 5  OFFSET限制从第六条开始查询(OFFSET 就是前面的都pass)，查询不超过5条数据</li>
-<li>MySQL 支持简化的写法 LIMIT 3,4   ,后面是限制的数量。逗号前面是偏移量</li>
-</ul>
-</li>
-<li>SELECT name FROM table ORDER_BY age   需要注意ORDER_BY必须是最后一条子句。</li>
-<li>SELECT name,age FROM table ORDER_BY age,name 需求是不只是按照一个列进行排序。此时排序是顺序的，如果前面能拍排出结果，则后面的字段不会加入排序。</li>
-<li>SELECT name,age FROM table ORDER_BY 2,3 按照相对列的位置进行排序。</li>
-<li>DESC指定排序方式，默认是升序排序。但是如果需要降序排序的话，需要手动指明。<ul>
-<li>SELECT name,age FROM table ORDER_BY  age DESC,name</li>
-<li>默认都是升序，如果想让其他列也降序需要显示指明。SELECT name,age FROM table ORDER_BY  age DESC,name DESC</li>
-</ul>
-</li>
-</ul>
-<ul>
-<li>过滤数据使用WHERE。<ul>
-<li>SELECT name,age FROM table WHERE name = ‘david’</li>
-<li>SELECT name,age FROM table WHERE name = ‘david’ ORDER_BY age DESC  过滤语法，ORDER_BY也需要位于最后</li>
-<li>子句操作符,&gt; &lt;=,!=等 SELECT name,age FROM table WHERE age&gt;=18</li>
-<li>范围检查。 SELECT name,age FROM table WHERE age BETWEEN 10 AND 15。无论什么子句，只有是约束条件限制，肯定要加上WHERE.</li>
-<li>是否为空值检查。SELECT name,age FROM table WHERE age IS NULL。</li>
-</ul>
-</li>
-<li>高级过滤。同时满足多个条件的过滤。<ul>
-<li>SELECT name,age FROM table WHERE age&gt;10 AND name==’david’，AND关键字必须条件都满足才可以返回数据</li>
-<li>OR关键字，当第一个条件满足时，不管第二个满不满足都会返回。SELECT name,age FROM table WhERE age&gt;10 OR name == ‘david’</li>
-<li>在And 和 OR都存在的SQL尽量使用括号来消除歧义。And的优先级高于OR. SELECT prod_name,prod_price FROM Products WHERE (vend_id= ‘DLL01’ OR vend_id = ‘BRSO1’) AND prod_price&gt;10</li>
-<li>IN关键字，作用等同于OR，如果第一个条件满足，不会去匹配第二个条件。SELECT name,price FROM products WHERE id  in (‘DLL01’,’BRS01’) ORDER BY name。等价于SELECT name,price FROM products WHERE id = ‘DLL01’ OR id = ‘BRS01’ ORDER BY name;  <ul>
-<li>IN有以下好处</li>
-<li>查询速度更快</li>
-<li>可以包含其他的SELECT语句。</li>
-<li>更清楚直观，容易管理。</li>
-</ul>
-</li>
-<li>NOT关键字。否定后面的行为，简单的SQL语句等价于!= 或者&lt;&gt;。但是在一些复杂的语句，它的优势可以得以体现。在与IN联合使用的时候，NOT可以非常简单的找出与条件列表不匹配的行。</li>
-</ul>
-</li>
-</ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2610,7 +2619,7 @@ id1 = id2 + t2
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-count">14</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
